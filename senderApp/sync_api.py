@@ -12,11 +12,11 @@ app.register_blueprint(order_bp, url_prefix='/order')
 
 @app.route('/')
 def index():
-    return "Sync API is running. Use the /customer endpoint to sync customers, or /order endpoint to sync orders."
+    return "Sync API is running."
 
 @app.route('/health')
 def health():
-    return "APIs working fine. Test 123456789"
+    return "APIs working fine. Test"
 
 if __name__ == '__main__':
     # For development, the built-in server is fine.
