@@ -47,9 +47,6 @@ services:
     networks: [internal]
 
   senderApp:
-    build:
-      context: ./senderApp
-      dockerfile: Dockerfile
     image: ghcr.io/${GITHUB_USERNAME}/senderapp:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
@@ -63,19 +60,19 @@ services:
       - traefik.http.routers.api.tls.certresolver=letsencrypt
       - traefik.http.routers.api.entrypoints=websecure
       - traefik.http.services.api.loadbalancer.server.port=5000
+      - com.centurylinklabs.watchtower.enable=true
     networks: [internal]
 
-  # ←←← WATCHTOWER IS BACK (this was missing!)
   watchtower:
     image: containrrr/watchtower:latest
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: >
-      ghcr.io/${GITHUB_USERNAME}/senderapp:${IMAGE_TAG:-latest}
     environment:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_SCHEDULE=0 * * * * *   # check every minute (at second 0 of every minute)
+      - WATCHTOWER_INCLUDE_STOPPED=true
+      - WATCHTOWER_REVIVE_STOPPED=false
     networks: [internal]
 
 volumes:
