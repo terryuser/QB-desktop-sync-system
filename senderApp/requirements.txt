@@ -1,0 +1,6 @@
+Flask
+requests
+python-dotenv
+psutil
+pywin32; platform_system == "Windows"
+gunicorn
