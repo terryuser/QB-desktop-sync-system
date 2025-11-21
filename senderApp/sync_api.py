@@ -14,6 +14,10 @@ app.register_blueprint(order_bp, url_prefix='/order')
 def index():
     return "Sync API is running. Use the /customer endpoint to sync customers, or /order endpoint to sync orders."
 
+@app.route('/health')
+def health():
+    return "OK"
+
 if __name__ == '__main__':
     # For development, the built-in server is fine.
     # For production, use a proper WSGI server like Gunicorn or Waitress.
