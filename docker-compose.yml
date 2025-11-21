@@ -52,6 +52,8 @@ services:
       dockerfile: Dockerfile
     image: ghcr.io/${GITHUB_USERNAME}/senderapp:${IMAGE_TAG:-latest}
     restart: unless-stopped
+    ports:
+      - "5000"
     expose:
       - "5000"
     labels:
@@ -73,8 +75,7 @@ services:
       ghcr.io/${GITHUB_USERNAME}/senderapp:${IMAGE_TAG:-latest}
     environment:
       - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_POLL_INTERVAL=60
-      - WATCHTOWER_SCHEDULE=0 * * * * *   # check every hour (you can make it */10 for every 10 min)
+      - WATCHTOWER_SCHEDULE=0 * * * * *   # check every minute (at second 0 of every minute)
     networks: [internal]
 
 volumes:
