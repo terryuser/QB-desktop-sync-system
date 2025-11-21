@@ -8,7 +8,7 @@ from xml.sax.saxutils import escape
 # Load environment variables from .env file
 load_dotenv()
 
-base_url = os.environ.get("QB_SERVER_URL", "http://10.100.11.82:5000").rstrip('/')
+base_url = os.environ.get("QB_SERVER_URL", "").rstrip('/')
 SERVER_URL = base_url + "/qbxml"
 
 def get_sales_rep_map_from_qb():
