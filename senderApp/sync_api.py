@@ -16,7 +16,7 @@ def index():
 
 @app.route('/health')
 def health():
-    return "APIs working fine."
+    return "APIs working fine. Test 123"
 
 if __name__ == '__main__':
     # For development, the built-in server is fine.
