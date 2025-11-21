@@ -50,9 +50,7 @@ services:
     image: ghcr.io/${GITHUB_USERNAME}/senderapp:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
-      - "5000"
-    expose:
-      - "5000"
+      - "5000:5000"
     labels:
       - traefik.enable=true
       - traefik.http.routers.api.rule=Host(`api.${DOMAIN_NAME}`)
