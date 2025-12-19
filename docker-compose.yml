@@ -47,13 +47,11 @@ services:
     networks: [internal]
 
   senderApp:
-    build:
-      context: ./senderApp
-      dockerfile: Dockerfile
     image: ghcr.io/${GITHUB_USERNAME}/senderapp:${IMAGE_TAG:-latest}
     restart: unless-stopped
-    expose:
-      - "5000"
+    command: uvicorn sync_api:app --host 0.0.0.0 --port 5000
+    ports:
+      - "5000:5000"
     labels:
       - traefik.enable=true
       - traefik.http.routers.api.rule=Host(`api.${DOMAIN_NAME}`)
@@ -61,20 +59,19 @@ services:
       - traefik.http.routers.api.tls.certresolver=letsencrypt
       - traefik.http.routers.api.entrypoints=websecure
       - traefik.http.services.api.loadbalancer.server.port=5000
+      - com.centurylinklabs.watchtower.enable=true
     networks: [internal]
 
-  # ←←← WATCHTOWER IS BACK (this was missing!)
   watchtower:
     image: containrrr/watchtower:latest
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: >
-      ghcr.io/${GITHUB_USERNAME}/senderapp:${IMAGE_TAG:-latest}
     environment:
       - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_POLL_INTERVAL=60
-      - WATCHTOWER_SCHEDULE=0 * * * * *   # check every hour (you can make it */10 for every 10 min)
+      - WATCHTOWER_SCHEDULE=0 * * * * *   # check every minute (at second 0 of every minute)
+      - WATCHTOWER_INCLUDE_STOPPED=true
+      - WATCHTOWER_REVIVE_STOPPED=false
     networks: [internal]
 
 volumes:

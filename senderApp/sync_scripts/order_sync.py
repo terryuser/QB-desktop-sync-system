@@ -1,15 +1,9 @@
 import json
-import requests
-import os
-from dotenv import load_dotenv
+from sync_scripts.qb_client import send_qbxml_request
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 
-# Load environment variables from .env file
-load_dotenv()
-
-base_url = os.environ.get("QB_SERVER_URL", "").rstrip('/')
-SERVER_URL = base_url + "/qbxml"
+# SERVER_URL handling is now in qb_client
 
 def create_order_to_qb(shopify_order_json_string):
     """

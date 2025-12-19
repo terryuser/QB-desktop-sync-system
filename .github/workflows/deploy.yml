@@ -15,21 +15,21 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write        # needed to push to GHCR
+      packages: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Determine image tag from branch
+      - name: Set image tag from branch
         run: |
           BRANCH=${{ github.ref_name }}
           if [[ "$BRANCH" == "dev" ]]; then
-            echo "IMAGE_TAG=dev" >> $GITHUB_ENV
+            echo "TAG=dev" >> $GITHUB_ENV
           elif [[ "$BRANCH" == "uat" ]]; then
-            echo "IMAGE_TAG=uat" >> $GITHUB_ENV
+            echo "TAG=uat" >> $GITHUB_ENV
           else
-            echo "IMAGE_TAG=latest" >> $GITHUB_ENV
+            echo "TAG=latest" >> $GITHUB_ENV
           fi
 
       - name: Log in to GitHub Container Registry
@@ -46,11 +46,10 @@ jobs:
           file: ./senderApp/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/senderapp:${{ env.IMAGE_TAG }}
-            # Only tag as :latest on prod
-            ${{ github.ref_name == 'prod' && format('ghcr.io/{0}/senderapp:latest', github.repository_owner) || '' }}
+            ghcr.io/${{ secrets.GHCR_OWNER }}/senderapp:${{ env.TAG }}
+            ${{ github.ref_name == 'prod' && format('ghcr.io/{0}/senderapp:latest', secrets.GHCR_OWNER) || '' }}
 
-      - name: Success notification
+      - name: Summary
         run: |
-          echo "Deployed senderApp:${{ env.IMAGE_TAG }}"
-          echo "Image: ghcr.io/${{ github.repository_owner }}/senderapp:${{ env.IMAGE_TAG }}"
+          echo "Successfully deployed senderApp:${{ env.TAG }}"
+          echo "Image → ghcr.io/${{ secrets.GHCR_OWNER }}/senderapp:${{ env.TAG }}"

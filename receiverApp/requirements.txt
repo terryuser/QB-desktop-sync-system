@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+spyne
+lxml
+python-dotenv
+requests
+six
+werkzeug<3.0.0

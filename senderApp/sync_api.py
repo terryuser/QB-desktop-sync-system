@@ -1,20 +1,24 @@
-from flask import Flask
-from api_routes.customer_routes import customer_bp
-from api_routes.order_routes import order_bp
+from fastapi import FastAPI
+from api_routes.customer_routes import router as customer_router
+from api_routes.order_routes import router as order_router
+import uvicorn
 
-app = Flask(__name__)
+app = FastAPI(title="Sender App Sync API")
 
-# Register the customer blueprint with a URL prefix
-app.register_blueprint(customer_bp, url_prefix='/customer')
+# Register the customer router with a URL prefix
+app.include_router(customer_router, prefix='/customer', tags=["customer"])
 
-# Register the order blueprint with a URL prefix
-app.register_blueprint(order_bp, url_prefix='/order')
+# Register the order router with a URL prefix
+app.include_router(order_router, prefix='/order', tags=["order"])
 
-@app.route('/')
+@app.get('/')
 def index():
-    return "Sync API is running. Use the /customer endpoint to sync customers, or /order endpoint to sync orders."
+    return "Sync API is running. Test 123"
+
+@app.get('/health')
+def health():
+    return "APIs working fine."
 
 if __name__ == '__main__':
-    # For development, the built-in server is fine.
-    # For production, use a proper WSGI server like Gunicorn or Waitress.
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # For development, run uvicorn programmatically
+    uvicorn.run(app, host='0.0.0.0', port=5000)
