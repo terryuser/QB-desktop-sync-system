@@ -1,11 +1,12 @@
-from flask import Blueprint, request, jsonify
+from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import JSONResponse
 from sync_scripts.order_sync import create_order_to_qb, update_order_in_qb
 import json
 import os
 from datetime import datetime
 
-# Create a Blueprint for order routes
-order_bp = Blueprint('order_routes', __name__)
+# Create a APIRouter for order routes
+router = APIRouter()
 
 def save_order_json_to_logs(shopify_order_data):
     """
@@ -33,20 +34,22 @@ def save_order_json_to_logs(shopify_order_data):
     except Exception as e:
         print(f"Error saving order JSON to logs: {e}")
 
-@order_bp.route('/', methods=['POST'])
-def create_order():
+@router.post('/')
+async def create_order(request: Request):
     """
     API endpoint to receive a Shopify order JSON and sync it to QuickBooks as a Sales Order.
     This is called from the main app, with a /order prefix.
     So the full endpoint is POST /order
     """
-    if not request.is_json:
-        return jsonify({"error": "Request must be JSON"}), 400
+    try:
+        shopify_order_data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Request must be JSON")
 
-    shopify_order_data = request.get_json()
     shopify_order_json_string = json.dumps(shopify_order_data)
 
     # Save the received JSON to logs directory
+    # Running sync IO in async route - ideally move to thread
     save_order_json_to_logs(shopify_order_data)
 
     # Call the sync function
@@ -55,27 +58,27 @@ def create_order():
     if result:
         # Check for an error key in the returned dictionary
         if "error" in result:
-            return jsonify({"status": "error", "response": result}), 400
+            return JSONResponse(content={"status": "error", "response": result}, status_code=400)
         else:
-            return jsonify({"status": "success", "response": result}), 200
+            return JSONResponse(content={"status": "success", "response": result}, status_code=200)
     else:
-        return jsonify({"status": "error", "message": "Failed to sync order to QuickBooks. Check sync service logs."}), 500
+        return JSONResponse(content={"status": "error", "message": "Failed to sync order to QuickBooks. Check sync service logs."}, status_code=500)
 
-@order_bp.route('/<string:order_id>', methods=['PUT'])
-def update_order(order_id):
+@router.put('/{order_id}')
+async def update_order(order_id: str, request: Request):
     """
     API endpoint to receive a Shopify order JSON and update the corresponding Sales Order in QuickBooks.
     The order_id from the URL is noted, but the primary identifier used for the lookup
     is the 'id' field within the JSON payload.
     """
-    if not request.is_json:
-        return jsonify({"error": "Request must be JSON"}), 400
-
-    shopify_order_data = request.get_json()
+    try:
+        shopify_order_data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Request must be JSON")
     
     # Basic validation to ensure the ID in the URL matches the one in the payload
     if str(shopify_order_data.get('id')) != order_id:
-        return jsonify({"error": f"ID in URL ({order_id}) does not match ID in payload ({shopify_order_data.get('id')})."}), 400
+        raise HTTPException(status_code=400, detail=f"ID in URL ({order_id}) does not match ID in payload ({shopify_order_data.get('id')}).")
 
     shopify_order_json_string = json.dumps(shopify_order_data)
 
@@ -84,20 +87,20 @@ def update_order(order_id):
 
     if result:
         if "error" in result:
-            return jsonify({"status": "error", "response": result}), 400
+            return JSONResponse(content={"status": "error", "response": result}, status_code=400)
         else:
-            return jsonify({"status": "success", "response": result}), 200
+            return JSONResponse(content={"status": "success", "response": result}, status_code=200)
     else:
-        return jsonify({"status": "error", "message": "Failed to update order in QuickBooks. Check sync service logs."}), 500
+        return JSONResponse(content={"status": "error", "message": "Failed to update order in QuickBooks. Check sync service logs."}, status_code=500)
 
-@order_bp.route('/<string:order_id>', methods=['DELETE'])
-def delete_order(order_id):
+@router.delete('/{order_id}')
+async def delete_order(order_id: str):
     """
     Placeholder for deleting an order.
     """
     # In the future, you would call a `delete_order_in_qb` function.
-    return jsonify({
+    return JSONResponse(content={
         "status": "placeholder",
         "message": f"This endpoint will delete order {order_id}."
-    }), 501 # 501 Not Implemented
+    }, status_code=501) # 501 Not Implemented
 

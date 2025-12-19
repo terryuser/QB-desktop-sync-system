@@ -1,15 +1,12 @@
 import json
-import requests
 import os
-from dotenv import load_dotenv
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
+from sync_scripts.qb_client import send_qbxml_request
 
 # Load environment variables from .env file
-load_dotenv()
-
-base_url = os.environ.get("QB_SERVER_URL", "").rstrip('/')
-SERVER_URL = base_url + "/qbxml"
+# (load_dotenv is called in qb_client, but good to keep here if needed for specific logic, 
+# though qb_client loads it. We can keep imports minimal)
 
 def get_sales_rep_map_from_qb():
     """
@@ -25,11 +22,9 @@ def get_sales_rep_map_from_qb():
                     </QBXML>"""
     try:
         print("Querying QuickBooks for Sales Rep table...")
-        response = requests.post(SERVER_URL, json={"xml": xml_request}, timeout=60)
-        response.raise_for_status()
-        response_json = response.json()
-        if "response" in response_json:
-            raw_xml = response_json["response"]
+        raw_xml = send_qbxml_request(xml_request)
+        
+        if raw_xml:
             root = ET.fromstring(raw_xml)
             sales_rep_list_xml = root.findall(".//SalesRepRet")
             sales_rep_map = {
@@ -42,7 +37,7 @@ def get_sales_rep_map_from_qb():
             print("Successfully built Sales Rep map from QuickBooks data.")
             return sales_rep_map
         else:
-            print("Error: 'response' key not found in JSON while getting Sales Reps.")
+            print("Error: No XML response received for Sales Reps.")
             return {}
     except Exception as e:
         print(f"An unexpected error occurred while getting Sales Reps: {e}")
@@ -62,11 +57,9 @@ def get_customer_type_map_from_qb():
                     </QBXML>"""
     try:
         print("Querying QuickBooks for Customer Type table...")
-        response = requests.post(SERVER_URL, json={"xml": xml_request}, timeout=60)
-        response.raise_for_status()
-        response_json = response.json()
-        if "response" in response_json:
-            raw_xml = response_json["response"]
+        raw_xml = send_qbxml_request(xml_request)
+        
+        if raw_xml:
             root = ET.fromstring(raw_xml)
             customer_type_list_xml = root.findall(".//CustomerTypeRet")
             customer_type_map = {
@@ -79,7 +72,7 @@ def get_customer_type_map_from_qb():
             print("Successfully built Customer Type map from QuickBooks data.")
             return customer_type_map
         else:
-            print("Error: 'response' key not found in JSON while getting Customer Types.")
+            print("Error: No XML response received for Customer Types.")
             return {}
     except Exception as e:
         print(f"An unexpected error occurred while getting Customer Types: {e}")
@@ -99,11 +92,9 @@ def get_currency_map_from_qb():
                     </QBXML>"""
     try:
         print("Querying QuickBooks for Currency table...")
-        response = requests.post(SERVER_URL, json={"xml": xml_request}, timeout=60)
-        response.raise_for_status()
-        response_json = response.json()
-        if "response" in response_json:
-            raw_xml = response_json["response"]
+        raw_xml = send_qbxml_request(xml_request)
+        
+        if raw_xml:
             root = ET.fromstring(raw_xml)
             currency_list_xml = root.findall(".//CurrencyRet")
             currency_map = {
@@ -116,7 +107,7 @@ def get_currency_map_from_qb():
             print("Successfully built Currency map from QuickBooks data.")
             return currency_map
         else:
-            print("Error: 'response' key not found in JSON while getting Currencies.")
+            print("Error: No XML response received for Currencies.")
             return {}
     except Exception as e:
         print(f"An unexpected error occurred while getting Currencies: {e}")
@@ -257,12 +248,9 @@ def create_customer_to_qb(shopify_customer_json_string):
 
     try:
         print(f"Sending request to sync customer {shopify_customer_data.get('id')} to QuickBooks...")
-        response = requests.post(SERVER_URL, json={"xml": xml_request}, timeout=60)
-        response.raise_for_status()
-        response_json = response.json()
+        raw_xml = send_qbxml_request(xml_request)
         
-        if "response" in response_json:
-            raw_xml = response_json["response"]
+        if raw_xml:
             root = ET.fromstring(raw_xml)
             
             # Check for errors in the response
@@ -282,15 +270,9 @@ def create_customer_to_qb(shopify_customer_json_string):
                 print("CustomerRet not found in QuickBooks response.")
                 return {"error": "CustomerRet not found in response."}
         else:
-            print("Error: 'response' key not found in server response.")
-            return {"error": "Invalid server response."}
+            print("Error: No XML response received for create customer.")
+            return {"error": "No response from QBWC."}
 
-    except requests.RequestException as e:
-        print(f"HTTP Error: {e}")
-        if e.response is not None:
-            print("Server response:", e.response.text)
-        else:
-            print("No server response body available.")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
     return None
@@ -315,12 +297,9 @@ def get_customer_by_shopify_id(shopify_id):
 </QBXML>"""
     try:
         print(f"Querying QuickBooks for customer with Shopify ID: {shopify_id}...")
-        response = requests.post(SERVER_URL, json={"xml": xml_request}, timeout=60)
-        response.raise_for_status()
-        response_json = response.json()
+        raw_xml = send_qbxml_request(xml_request)
 
-        if "response" in response_json:
-            raw_xml = response_json["response"]
+        if raw_xml:
             root = ET.fromstring(raw_xml)
             customer_ret = root.find(".//CustomerRet")
             if customer_ret is not None:
@@ -331,6 +310,9 @@ def get_customer_by_shopify_id(shopify_id):
             else:
                 print("Customer with that Shopify ID not found in QuickBooks.")
                 return None
+        else:
+             print("Error: No XML response received for customer lookup.")
+             return None
     except Exception as e:
         print(f"An error occurred while querying for customer by Shopify ID: {e}")
         return None
@@ -414,12 +396,9 @@ def update_customer_in_qb(shopify_customer_json_string):
 
     try:
         print(f"Sending request to update customer {shopify_id} in QuickBooks...")
-        response = requests.post(SERVER_URL, json={"xml": xml_request}, timeout=60)
-        response.raise_for_status()
-        response_json = response.json()
+        raw_xml = send_qbxml_request(xml_request)
         
-        if "response" in response_json:
-            raw_xml = response_json["response"]
+        if raw_xml:
             root = ET.fromstring(raw_xml)
             
             status_code_node = root.find(".//*[@statusCode]")
@@ -436,7 +415,7 @@ def update_customer_in_qb(shopify_customer_json_string):
             else:
                 return {"error": "CustomerRet not found in update response."}
         else:
-            return {"error": "Invalid server response on update."}
+            return {"error": "No response from QBWC on update."}
 
     except Exception as e:
         print(f"An unexpected error occurred during update: {e}")
